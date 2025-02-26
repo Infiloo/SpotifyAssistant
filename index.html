@@ -3,57 +3,250 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Spotify Steuerung</title>
+    <title id="pageTitle">Spotify Aissistent</title>
+    <style>
+        /* Hintergrundanimation */
+        @keyframes gradientBackground {
+            0% { background-color: #4CAF50; }
+            50% { background-color: #81C784; }
+            100% { background-color: #4CAF50; }
+        }
+
+        /* Hintergrundfarbe und zentrale Ausrichtung */
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            animation: gradientBackground 5s ease-in-out infinite; /* Animierter Hintergrund */
+            background-size: 400% 400%;
+        }
+
+        h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            color: white;
+            animation: fadeIn 2s ease-in-out;
+        }
+
+        p, h2 {
+            font-size: 1.2em;
+            margin-top: 10px;
+            animation: fadeIn 3s ease-in-out;
+        }
+
+        /* Eingabefeld für den Titel */
+        textarea {
+            width: 80%;
+            height: 100px;
+            padding: 10px;
+            margin-top: 20px;
+            font-size: 1.2em;
+            border-radius: 5px;
+            border: 2px solid #4CAF50;
+            resize: none;
+            transition: background-color 1s ease;
+            animation: bounceIn 2s ease-in-out;
+        }
+
+        /* Animation für den Statusbereich */
+        #status {
+            font-size: 1.2em;
+            color: #333;
+            margin-top: 30px;
+            animation: bounceIn 2s ease-in-out;
+        }
+
+        /* Button zum Wechseln der Animation */
+        #animationButton {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 15px 30px;
+            font-size: 1.2em;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            transition: background-color 0.3s;
+        }
+
+        #animationButton:hover {
+            background-color: #45a049;
+        }
+
+        /* Animationen */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes bounceIn {
+            0% {
+                transform: scale(0);
+            }
+            60% {
+                transform: scale(1.1);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        /* Animation für das Texteingabefeld, wenn ein Titel erkannt wird */
+        #songTitle {
+            background-color: #fff;
+        }
+
+        #songTitle.changed {
+            background-color: #e0ffe0;
+        }
+    </style>
 </head>
 <body>
-    <h1>Spotify Steuerung</h1>
-    <label for="songTitle">Song Titel eingeben:</label>
-    <input type="text" id="songTitle" placeholder="Gib den Titel ein...">
-    <button onclick="playSpotifySong()">Musik abspielen</button>
-    <p id="status"></p>
+    <h1>Spotify Aissistent</h1>
+    <p id="status">Warte auf den Befehl „Spotify spiele [Titel]“...</p>
+
+    <h2>Erkanntes Lied:</h2>
+    <textarea id="songTitle" rows="4" cols="50" placeholder="Erkannter Titel wird hier angezeigt..." readonly></textarea>
+    
+    <br><br>
+    <p>Die Musik wird automatisch abgespielt, sobald ein Titel erkannt wurde.</p>
+
+    <button id="animationButton">Animation wechseln</button>
 
     <script>
-        // Spotify API Token (diesen musst du manuell durch deinen eigenen Token ersetzen)
-        const SPOTIFY_TOKEN = "9b81be99769f414ca049538586e327b1";
+        let titleInterval;
+        let isTypingAnimation = false; // Flag für die aktuelle Animation
 
-        function playSpotifySong() {
-            const songTitle = document.getElementById("songTitle").value.trim();
-            if (songTitle === "") {
-                document.getElementById("status").innerText = "Bitte gib einen Songtitel ein!";
-                return;
+        // Funktion für die Ein- und Ausblend-Animation
+        function startFadeInOutAnimation() {
+            let titleText = ["Spotify", "Aissistent"];
+            let currentWordIndex = 0;
+            let currentCharIndex = 0;
+
+            function fadeInOut() {
+                let currentText = titleText[currentWordIndex].substring(0, currentCharIndex);
+                document.title = currentText;
+
+                if (currentCharIndex < titleText[currentWordIndex].length) {
+                    currentCharIndex++;
+                } else {
+                    if (currentWordIndex === 0) {
+                        currentWordIndex = 1;
+                    } else {
+                        currentWordIndex = 0;
+                    }
+                    currentCharIndex = 0;
+                }
             }
 
-            // Spotify API Aufruf, um den Song zu suchen und abzuspielen
-            fetch(`https://api.spotify.com/v1/search?q=${encodeURIComponent(songTitle)}&type=track&limit=1`, {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${SPOTIFY_TOKEN}`
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                const song = data.tracks.items[0];
-                if (song) {
-                    const songUri = song.uri;
-                    // Zum Abspielen des Songs (dies benötigt ein eingeloggtes Spotify-Account)
-                    fetch(`https://api.spotify.com/v1/me/player/play`, {
-                        method: 'PUT',
-                        headers: {
-                            'Authorization': `Bearer ${SPOTIFY_TOKEN}`,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            uris: [songUri]
-                        })
-                    })
-                    .then(() => document.getElementById("status").innerText = `Spiele jetzt: ${song.name} von ${song.artists[0].name}`)
-                    .catch(err => document.getElementById("status").innerText = "Fehler beim Abspielen des Songs.");
-                } else {
-                    document.getElementById("status").innerText = "Song nicht gefunden.";
-                }
-            })
-            .catch(err => document.getElementById("status").innerText = "Fehler bei der Spotify API.");
+            clearInterval(titleInterval);
+            titleInterval = setInterval(fadeInOut, 300); // Schneller Wechsel der Buchstaben
         }
+
+        // Funktion für die "Tippen"-Animation (Gesamter Text wird eingegeben und gelöscht)
+        function startTypingAnimation() {
+            const fullText = "Spotify Aissistent";
+            let index = 0;
+            let deleting = false;
+
+            function typingEffect() {
+                let currentText = fullText.substring(0, index);
+                document.title = currentText;
+
+                if (!deleting && index < fullText.length) {
+                    index++;
+                } else if (deleting && index > 0) {
+                    index--;
+                } else {
+                    deleting = !deleting; // Wechsel zwischen Eingabe und Löschen
+                }
+            }
+
+            clearInterval(titleInterval);
+            titleInterval = setInterval(typingEffect, 200); // Tippen mit einer Verzögerung von 200ms
+        }
+
+        // Wechsel zwischen den Animationen
+        function changeAnimation() {
+            if (isTypingAnimation) {
+                startFadeInOutAnimation(); // Wechsel zur Ein- und Ausblend-Animation
+            } else {
+                startTypingAnimation(); // Wechsel zur Tippen-Animation
+            }
+            isTypingAnimation = !isTypingAnimation; // Animation umschalten
+        }
+
+        // Starte die initiale Animation
+        startFadeInOutAnimation();
+
+        // Event Listener für den Button zum Wechseln der Animation
+        document.getElementById('animationButton').addEventListener('click', changeAnimation);
+
+        // Funktion, um Spotify mit dem erkannten Titel zu öffnen
+        function openSpotifyApp(songTitle) {
+            const searchQuery = encodeURIComponent(songTitle);
+            const spotifyAppLink = `spotify:search:${searchQuery}`;  // Deep Link für Spotify
+
+            // Versuche, die Spotify-App zu öffnen
+            window.location.href = spotifyAppLink;
+
+            // Status anzeigen, dass die App geöffnet wird
+            document.getElementById("status").innerText = `Spotify-App wird für: ${songTitle} geöffnet.`;
+        }
+
+        // Spracherkennungs-Setup
+        const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+        recognition.lang = "de-DE";
+        recognition.continuous = true;  // Spracherkennung läuft kontinuierlich
+        recognition.interimResults = false;  // Keine Zwischenresultate
+        recognition.maxAlternatives = 1;  // Nur die erste Alternative verwenden
+
+        recognition.onresult = function(event) {
+            const command = event.results[event.results.length - 1][0].transcript.toLowerCase();
+            document.getElementById("status").innerText = "Befehl erkannt: " + command;
+
+            // Wenn der Befehl 'Spotify spiele' enthalten ist, extrahiere den Titel
+            if (command.includes("spotify spiele")) {
+                let recognizedTitle = command.replace("spotify spiele", "").trim();
+                if (recognizedTitle) {
+                    document.getElementById("songTitle").value = recognizedTitle;
+                    document.getElementById("songTitle").classList.add("changed"); // Animierte Änderung des Eingabefeldes
+                    openSpotifyApp(recognizedTitle);  // Nur Spotify-App öffnen
+                } else {
+                    document.getElementById("status").innerText = "Kein Titel angegeben!";
+                }
+            }
+        };
+
+        recognition.onerror = function(event) {
+            document.getElementById("status").innerText = "Fehler bei der Spracherkennung: " + event.error;
+        };
+
+        recognition.onstart = function() {
+            document.getElementById("status").innerText = "Spracherkennung läuft... (Warte auf Befehl)";
+        };
+
+        recognition.onend = function() {
+            console.log("Spracherkennung wurde gestoppt, versuche erneut zu starten...");
+            recognition.start(); // Neustarten der Spracherkennung, wenn sie stoppt
+        };
+
+        // Starte die kontinuierliche Spracherkennung
+        recognition.start();
     </script>
 </body>
 </html>
