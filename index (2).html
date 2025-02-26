@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spotify Steuerung</title>
+</head>
+<body>
+    <h1>Spotify Steuerung</h1>
+    <label for="songTitle">Song Titel eingeben:</label>
+    <input type="text" id="songTitle" placeholder="Gib den Titel ein...">
+    <button onclick="playSpotifySong()">Musik abspielen</button>
+    <p id="status"></p>
+
+    <script>
+        // Spotify API Token (diesen musst du manuell durch deinen eigenen Token ersetzen)
+        const SPOTIFY_TOKEN = "DEIN_SPOTIFY_TOKEN_HIER";
+
+        function playSpotifySong() {
+            const songTitle = document.getElementById("songTitle").value.trim();
+            if (songTitle === "") {
+                document.getElementById("status").innerText = "Bitte gib einen Songtitel ein!";
+                return;
+            }
+
+            // Spotify API Aufruf, um den Song zu suchen und abzuspielen
+            fetch(`https://api.spotify.com/v1/search?q=${encodeURIComponent(songTitle)}&type=track&limit=1`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${SPOTIFY_TOKEN}`
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                const song = data.tracks.items[0];
+                if (song) {
+                    const songUri = song.uri;
+                    // Zum Abspielen des Songs (dies benötigt ein eingeloggtes Spotify-Account)
+                    fetch(`https://api.spotify.com/v1/me/player/play`, {
+                        method: 'PUT',
+                        headers: {
+                            'Authorization': `Bearer ${SPOTIFY_TOKEN}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            uris: [songUri]
+                        })
+                    })
+                    .then(() => document.getElementById("status").innerText = `Spiele jetzt: ${song.name} von ${song.artists[0].name}`)
+                    .catch(err => document.getElementById("status").innerText = "Fehler beim Abspielen des Songs.");
+                } else {
+                    document.getElementById("status").innerText = "Song nicht gefunden.";
+                }
+            })
+            .catch(err => document.getElementById("status").innerText = "Fehler bei der Spotify API.");
+        }
+    </script>
+</body>
+</html>
